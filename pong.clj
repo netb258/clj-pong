@@ -13,6 +13,9 @@
 (def score-left (atom 0))
 (def score-right (atom 0))
 
+(def player1-direction (atom nil))
+(def player2-direction (atom nil))
+
 (defn reset-game!
   "Returns the game's internal state to it's original value."
   []
@@ -108,6 +111,23 @@
 (defn player2-scored?
   []
   (< (:x @ball) 0))
+
+(defn update-movement []
+  (letfn [(move-up [x]
+            (if (<= x 0)
+              0
+              (- x 5)))
+          (move-down [x]
+            (if (>= x (- HEIGHT racket-height))
+              (- HEIGHT racket-height)
+              (+ x 5)))]
+    (cond
+      ;; Left racket is controlled with W (up) and S (down).
+      (= :up @player1-direction)    (swap! left-racket update-in [:y] move-up)
+      (= :down @player1-direction)  (swap! left-racket update-in [:y] move-down)
+      ;; Right racket is controlled with the arrow keys.
+      (= :up @player2-direction)    (swap! right-racket update-in [:y] move-up)
+      (= :down @player2-direction)  (swap! right-racket update-in [:y] move-down))))
   
 (defn update-state []
   ;; move the ball into its direction
@@ -123,7 +143,8 @@
     (swap! game-paused? not))
   (when (player2-scored?)
     (swap! score-right inc)
-    (swap! game-paused? not)))
+    (swap! game-paused? not))
+  (update-movement))
 
 (defn draw []
   ;; Set background color to dark gray, draw color to white.
@@ -136,22 +157,21 @@
   (draw-racket @ball))
 
 (defn key-pressed []
-  (letfn [(move-up [x]
-            (if (<= x 0)
-              0
-              (- x 10)))
-          (move-down [x]
-            (if (>= x (- HEIGHT racket-height))
-              (- HEIGHT racket-height)
-              (+ x 10)))]
-    (cond
-      ;; Left racket is controlled with W (up) and S (down).
-      (= (key-code) KeyEvent/VK_W)    (swap! left-racket update-in [:y] move-up)
-      (= (key-code) KeyEvent/VK_S)    (swap! left-racket update-in [:y] move-down)
-      ;; Right racket is controlled with the arrow keys.
-      (= (key-code) KeyEvent/VK_UP)   (swap! right-racket update-in [:y] move-up)
-      (= (key-code) KeyEvent/VK_DOWN) (swap! right-racket update-in [:y] move-down)
-      (= (key-code) KeyEvent/VK_R)    (reset-game!))))
+  (cond
+    ;; Left racket is controlled with W (up) and S (down).
+    (= (key-code) KeyEvent/VK_W)    (reset! player1-direction :up)
+    (= (key-code) KeyEvent/VK_S)    (reset! player1-direction :down)
+    ;; Right racket is controlled with the arrow keys.
+    (= (key-code) KeyEvent/VK_UP)   (reset! player2-direction :up)
+    (= (key-code) KeyEvent/VK_DOWN) (reset! player2-direction :down)
+    (= (key-code) KeyEvent/VK_R)    (reset-game!)))
+
+(defn key-released []
+  (cond
+    (= (key-code) KeyEvent/VK_W)    (reset! player1-direction nil)
+    (= (key-code) KeyEvent/VK_S)    (reset! player1-direction nil)
+    (= (key-code) KeyEvent/VK_UP)   (reset! player2-direction nil)
+    (= (key-code) KeyEvent/VK_DOWN) (reset! player2-direction nil)))
 
 (defn setup []
   (smooth)
@@ -176,4 +196,5 @@
   :setup setup
   :draw draw-game
   :mouse-clicked #(reset-game!)
+  :key-released key-released
   :key-pressed key-pressed)
