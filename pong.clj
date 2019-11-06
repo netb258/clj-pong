@@ -4,7 +4,6 @@
 (def WIDTH 600)
 (def HEIGHT 400)
 
-;; We want a high frame rate so that the ball will travel fast.
 (def FPS 100)
 
 (def racket-width 10)
@@ -12,9 +11,6 @@
 
 (def score-left (atom 0))
 (def score-right (atom 0))
-
-(def player1-direction (atom nil))
-(def player2-direction (atom nil))
 
 (def is-up-pressed (atom false))
 (def is-down-pressed (atom false))
