@@ -31,7 +31,17 @@
 
   ;; The ball's direction as two x,y coordinates.
   ;; Initially it flies to the right, hence why x=1 (meaning x will increase by 1 each tick) and y=0.
-  (def ball-dir (atom [1 0])))
+  (def ball-dir (atom [2 0])))
+
+(defn increase-speed!
+  "Make the ball go faster."
+  []
+  (swap! ball-dir
+         (fn [dir]
+           [(if (> (first dir) 0) ;; If the ball is going right then increase x, else decrease x.
+              (inc (first dir))
+              (dec (first dir)))
+            (second dir)])))
 
 (defn draw-racket
   "Draws a pong racket on screen.
@@ -101,9 +111,13 @@
   "Handle the case where the ball collides with a racket."
   [racket ball]
   (when (rect-intersects? @racket @ball) ;; ball hit the racket?
-    (let [l (hit-location @racket @ball)]
+    (let [y (hit-location @racket @ball) ;; This will be 0, 0.5 or -0.5, check the hit-location function.
+          y (cond ;; I don't want the Y direction to be 0, 0.5 or -0.5, every time, so add some randomness.
+              (> y 0) (+ y (rand 0.4))
+              (< y 0) (- y (rand 0.4))
+              :else y)]
       ;; invert x direction, set y direction to follow the hit-direction
-      (swap! ball-dir (fn [[x _]] [(- x) l])))))
+      (swap! ball-dir (fn [[x _]] [(- x) y])))))
 
 (defn player1-scored?
   []
@@ -128,7 +142,7 @@
     ;; Right racket is controlled with the arrow keys.
     (when @is-up-pressed   (swap! right-racket update-in [:y] move-up))
     (when @is-down-pressed (swap! right-racket update-in [:y] move-down))))
-  
+
 (defn update-state []
   ;; move the ball into its direction
   (swap! ball move-ball @ball-dir)
@@ -144,6 +158,8 @@
   (when (player2-scored?)
     (swap! score-right inc)
     (swap! game-paused? not))
+  ;; Every 10 seconds the ball is going to get faster, until one of the players can't catch it anymore.
+  (when (= (mod (System/currentTimeMillis) 10000) 0) (increase-speed!))
   (update-movement))
 
 (defn draw []
