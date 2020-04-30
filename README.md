@@ -6,6 +6,11 @@ Uses the Quil library for rendering.
 
 ![Alt text](./screenshot1.png?raw=true "Title")
 
+# Usage
+
+
+    $ lein run
+    
 ## License
 
 Copyright © 2020 FIXME
