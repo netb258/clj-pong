@@ -3,7 +3,7 @@
   (:import java.awt.event.KeyEvent)
   (:gen-class))
 
-(def FPS (atom 100))
+(def FPS 200)
 (def WIDTH 600)
 (def HEIGHT 400)
 
@@ -39,10 +39,12 @@
   []
   (swap! ball-dir
          (fn [dir]
-           [(if (> (first dir) 0) ;; If the ball is going right then increase x, else decrease x.
+           [(if (>= (first dir) 0) ;; If the ball is going right then increase x, else decrease x.
               (inc (first dir))
               (dec (first dir)))
-            (second dir)])))
+            (if (>= (second dir) 0) ;; same for y.
+              (inc (second dir))
+              (dec (second dir)))])))
 
 (defn draw-racket
   "Draws a pong racket on screen.
@@ -116,8 +118,8 @@
   (when (rect-intersects? @racket @ball) ;; ball hit the racket?
     (let [y (hit-location @racket @ball) ;; This will be 0, 0.5 or -0.5, check the hit-location function.
           y (cond ;; I don't want the Y direction to be 0, 0.5 or -0.5, every time, so add some randomness.
-              (> y 0) (+ y (rand 0.4))
-              (< y 0) (- y (rand 0.4))
+              (> y 0) (+ y (rand 0.5))
+              (< y 0) (- y (rand 0.5))
               :else y)]
       ;; invert x direction, set y direction to follow the hit-direction
       (swap! ball-dir (fn [[x _]] [(- x) y])))))
@@ -165,8 +167,6 @@
   (when (player2-scored?)
     (swap! score-right inc)
     (swap! game-paused? not))
-  ;; Every 10 seconds the ball is going to get faster, until one of the players can't catch it anymore.
-  (when (= (mod (System/currentTimeMillis) 10000) 0) (increase-speed!))
   (update-movement))
 
 (defn draw []
@@ -195,7 +195,7 @@
 (defn setup []
   (smooth)
   (no-stroke)
-  (frame-rate @FPS))
+  (frame-rate FPS))
 
 (defn draw-game []
   (if @game-paused? (pause-game)
@@ -218,9 +218,8 @@
     :key-released key-released
     :key-pressed key-pressed)
 
-  ;; Every 30 seconds increase the game speed.
-  (future
-    (while (not= @FPS 500)
-      (Thread/sleep 30000)
-      (swap! FPS + 50)
-      (frame-rate @FPS))))
+  ;; Every 10 seconds the ball is going to get faster, until one of the players can't catch it anymore.
+  (future 
+    (while true
+      (Thread/sleep 10000)
+      (increase-speed!))))
